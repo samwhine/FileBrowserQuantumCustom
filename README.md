@@ -171,3 +171,9 @@ Do not commit production `config.yaml`, `database.db`, passwords, tokens, or com
 ## Rebuild
 
 Use the upstream build instructions in this README and verify the pinned tag/commit before building. Run backend tests, frontend tests, frontend build, `git diff --check`, and a final audit of the custom diff. Do not claim bit-for-bit binary reproducibility unless the same toolchain, dependencies, build flags, and embedded assets are used.
+
+## Custom author / maintainer
+
+**Samuel Extehines Heydemans**
+
+This attribution applies to the custom modifications in this repository. The upstream FileBrowser Quantum project and its original authors retain their original copyright and attribution.

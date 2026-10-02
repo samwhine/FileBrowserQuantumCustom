@@ -45,3 +45,9 @@ SHA-256:
 ```
 
 Before production deployment, rebuild from this tree with the pinned upstream commit and run the full backend/frontend tests in a Windows-capable build environment. Do not claim bit-for-bit reproducibility unless the same toolchain, frontend dependencies, build flags, and embedded assets are used.
+
+## Custom author / maintainer
+
+**Samuel Extehines Heydemans**
+
+This attribution applies to the custom modifications in this repository. The upstream FileBrowser Quantum project and its original authors retain their original copyright and attribution.

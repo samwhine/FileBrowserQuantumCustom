@@ -1,0 +1,118 @@
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/backend/common/settings/config.go /home/ubuntu/fbq-custom-source/backend/common/settings/config.go
+--- /home/ubuntu/fbq-upstream-v1.5.6/backend/common/settings/config.go	2026-10-02 15:30:17.314757356 +0000
++++ /home/ubuntu/fbq-custom-source/backend/common/settings/config.go	2026-10-02 15:31:34.051650140 +0000
+@@ -247,12 +247,18 @@
+ 	if Config.Server.MinSearchLength == 0 {
+ 		Config.Server.MinSearchLength = 3
+ 	}
+-	if !Config.Frontend.DisableDefaultLinks {
++	if !Config.Frontend.DisableDefaultLinks && !Config.Frontend.DisableVersionText {
++		versionURL := "https://github.com/gtsteffaniak/filebrowser/releases/"
++		if Config.Frontend.DisableVersionLink {
++			versionURL = "version text"
++		}
+ 		Config.Frontend.ExternalLinks = append(Config.Frontend.ExternalLinks, ExternalLink{
+ 			Text:  fmt.Sprintf("(%v)", version.Version),
+ 			Title: version.CommitSHA,
+-			Url:   "https://github.com/gtsteffaniak/filebrowser/releases/",
++			Url:   versionURL,
+ 		})
++	}
++	if !Config.Frontend.DisableDefaultLinks && !Config.Frontend.DisableHelp {
+ 		Config.Frontend.ExternalLinks = append(Config.Frontend.ExternalLinks, ExternalLink{
+ 			Text: "Help",
+ 			Url:  "help prompt",
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/backend/common/settings/structs.go /home/ubuntu/fbq-custom-source/backend/common/settings/structs.go
+--- /home/ubuntu/fbq-upstream-v1.5.6/backend/common/settings/structs.go	2026-10-02 15:30:17.314757356 +0000
++++ /home/ubuntu/fbq-custom-source/backend/common/settings/structs.go	2026-10-02 15:31:34.053281447 +0000
+@@ -209,17 +209,18 @@
+ }
+ 
+ type SourceConfig struct {
+-	DenyByDefault    bool              `json:"denyByDefault,omitempty"`           // deny access unless an "allow" access rule was specifically created.
+-	Private          bool              `json:"private"`                           // designate as source as private -- currently just means no sharing permitted.
+-	ReadOnly         bool              `json:"readOnly,omitempty"`                // read-only source, changes from the UI, webdav, and API will be disabled.
+-	Disabled         bool              `json:"disabled,omitempty"`                // disable the source, this is useful so you don't need to remove it from the config file
+-	IndexingInterval uint32            `json:"indexingIntervalMinutes,omitempty"` // deprecated: create a rule with indexingIntervalMinutes to set the indexing interval for this source
+-	Conditionals     ConditionalFilter `json:"conditionals"`                      // deprecated: use source.rules instead
+-	Rules            []ConditionalRule `json:"rules"`                             // list of item rules to apply to specific paths
+-	DefaultUserScope string            `json:"defaultUserScope"`                  // defaults to root of index "/" should match folders under path
+-	DefaultEnabled   bool              `json:"defaultEnabled"`                    // should be added as a default source for new users?
+-	CreateUserDir    bool              `json:"createUserDir"`                     // create a user directory for each user under defaultUserScope + username
+-	UseLogicalSize   bool              `json:"useLogicalSize"`                    // calculate sizes based on logical size instead of disk utilization (du -sh), folders will be 0 bytes when empty.
++	DenyByDefault    bool              `json:"denyByDefault,omitempty"`                            // deny access unless an "allow" access rule was specifically created.
++	Private          bool              `json:"private"`                                            // designate as source as private -- currently just means no sharing permitted.
++	ReadOnly         bool              `json:"readOnly,omitempty"`                                 // read-only source, changes from the UI, webdav, and API will be disabled.
++	Disabled         bool              `json:"disabled,omitempty"`                                 // disable the source, this is useful so you don't need to remove it from the config file
++	ShareBanner      string            `json:"shareBanner,omitempty" yaml:"shareBanner,omitempty"` // default source-relative banner for new shares
++	IndexingInterval uint32            `json:"indexingIntervalMinutes,omitempty"`                  // deprecated: create a rule with indexingIntervalMinutes to set the indexing interval for this source
++	Conditionals     ConditionalFilter `json:"conditionals"`                                       // deprecated: use source.rules instead
++	Rules            []ConditionalRule `json:"rules"`                                              // list of item rules to apply to specific paths
++	DefaultUserScope string            `json:"defaultUserScope"`                                   // defaults to root of index "/" should match folders under path
++	DefaultEnabled   bool              `json:"defaultEnabled"`                                     // should be added as a default source for new users?
++	CreateUserDir    bool              `json:"createUserDir"`                                      // create a user directory for each user under defaultUserScope + username
++	UseLogicalSize   bool              `json:"useLogicalSize"`                                     // calculate sizes based on logical size instead of disk utilization (du -sh), folders will be 0 bytes when empty.
+ 	// hidden but used internally - optimized map lookups for conditional rules
+ 	ResolvedRules ResolvedRulesConfig `json:"-"`
+ }
+@@ -280,9 +281,12 @@
+ }
+ 
+ type Frontend struct {
+-	Name                  string         `json:"name"`                  // display name, PWA installation name is capped at 30 characters
+-	DisableDefaultLinks   bool           `json:"disableDefaultLinks"`   // disable default links in the sidebar
+-	DisableUsedPercentage bool           `json:"disableUsedPercentage"` // disable used percentage for the sources in the sidebar
++	Name                  string         `json:"name"`                                         // display name, PWA installation name is capped at 30 characters
++	DisableDefaultLinks   bool           `json:"disableDefaultLinks"`                          // disable default links in the sidebar
++	DisableHelp           bool           `json:"disableHelp" yaml:"disableHelp"`               // hide the built-in Help link
++	DisableVersionText    bool           `json:"disableVersionText" yaml:"disableVersionText"` // hide the built-in version text
++	DisableVersionLink    bool           `json:"disableVersionLink" yaml:"disableVersionLink"` // hide the built-in version/release link while keeping Help
++	DisableUsedPercentage bool           `json:"disableUsedPercentage"`                        // disable used percentage for the sources in the sidebar
+ 	ExternalLinks         []ExternalLink `json:"externalLinks"`
+ 	DisableNavButtons     bool           `json:"disableNavButtons"` // disable the nav buttons in the sidebar
+ 	Styling               StylingConfig  `json:"styling"`
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/backend/database/share/extended.go /home/ubuntu/fbq-custom-source/backend/database/share/extended.go
+--- /home/ubuntu/fbq-upstream-v1.5.6/backend/database/share/extended.go	2026-10-02 15:30:17.320131215 +0000
++++ /home/ubuntu/fbq-custom-source/backend/database/share/extended.go	2026-10-02 15:31:34.054757329 +0000
+@@ -199,7 +199,20 @@
+ 	}
+ 
+ 	if assetQueryString == "" {
+-		return "", "", fmt.Errorf("asset not configured for this share")
++		// Use the source-level default for shares created before the default
++		// banner was configured, or shares created through another API path.
++		if isBanner {
++			if sourceInfo, ok := settings.Config.Server.SourceMap[l.Source]; ok && sourceInfo.Config.ShareBanner != "" {
++				assetPath := filepath.ToSlash(strings.TrimPrefix(strings.TrimSpace(sourceInfo.Config.ShareBanner), "/"))
++				assetQueryString = url.Values{
++					"source": {sourceInfo.Name},
++					"path":   {"/" + assetPath},
++				}.Encode()
++			}
++		}
++		if assetQueryString == "" {
++			return "", "", fmt.Errorf("asset not configured for this share")
++		}
+ 	}
+ 
+ 	// Parse the query string to extract source and path
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/backend/http/share.go /home/ubuntu/fbq-custom-source/backend/http/share.go
+--- /home/ubuntu/fbq-upstream-v1.5.6/backend/http/share.go	2026-10-02 15:30:17.325955195 +0000
++++ /home/ubuntu/fbq-custom-source/backend/http/share.go	2026-10-02 15:31:34.056173071 +0000
+@@ -430,6 +430,16 @@
+ 	if body.ShareType == "upload" && !body.AllowCreate {
+ 		body.AllowCreate = true
+ 	}
++	// Use the source banner when no per-share banner was supplied.
++	// The Advanced option remains an explicit per-share override.
++	if body.Banner == "" && source.Config.ShareBanner != "" {
++		assetPath := filepath.ToSlash(strings.TrimSpace(source.Config.ShareBanner))
++		assetPath = strings.TrimPrefix(assetPath, "/")
++		body.Banner = url.Values{
++			"source": {source.Name},
++			"path":   {"/" + assetPath},
++		}.Encode()
++	}
+ 	share.ClampShareEditable(d.user.Permissions, &body.CommonShare)
+ 	body.Source = source.Path // backend source is path
+ 	s = &share.Link{

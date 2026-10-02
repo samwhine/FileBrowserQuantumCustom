@@ -1,0 +1,46 @@
+server:
+  port: 8080
+  numImageProcessors: 4
+
+  sources:
+    - path: "D:\\Your-Data"
+      name: "Your Data Source"
+      config:
+        defaultEnabled: true
+        shareBanner: "Branding/Share-Banner.png"
+
+http:
+  trustedHeaders:
+    - "X-Forwarded-For"
+    - "X-Forwarded-Proto"
+    - "X-Forwarded-Host"
+    - "CF-Connecting-IP"
+  disableRateLimit: false
+
+auth:
+  adminUsername: admin
+  tokenExpirationHours: 24
+
+frontend:
+  name: "Your Company"
+  description: "Internal file management server for Your Company — access and manage documents, production assets, and team work files."
+  favicon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\favicon.png"
+  loginIcon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\logo.svg"
+  disableHelp: false
+  disableVersionText: false
+  disableVersionLink: true
+
+integrations:
+  media:
+    ffmpegPath: "C:\\Your Data\\Project_Pribadi\\-- Apps --\\ffmpeg\\bin"
+    debug: true
+    extractEmbeddedSubtitles: false
+    convert:
+      imagePreview:
+        heic: true
+      videoPreview:
+        mp4: true
+        mkv: true
+        avi: true
+        mov: true
+        webm: true

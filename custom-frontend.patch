@@ -1,0 +1,43 @@
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/prompts/Help.vue /home/ubuntu/fbq-custom-source/frontend/src/components/prompts/Help.vue
+--- /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/prompts/Help.vue	2026-10-02 15:30:17.351190276 +0000
++++ /home/ubuntu/fbq-custom-source/frontend/src/components/prompts/Help.vue	2026-10-02 15:31:34.056973164 +0000
+@@ -1,12 +1,5 @@
+ <template>
+   <div class="card-content help-content">
+-    <p class="help-description">
+-      {{ $t("help.description") }}
+-      <a class="link" href="https://filebrowserquantum.com/" target="_blank">
+-        {{ $t("help.wiki") }}
+-      </a>
+-    </p>
+-
+     <div class="shortcuts-grid">
+       <!-- Function Keys Section -->
+       <div class="shortcut-section">
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/sidebar/Sidebar.vue /home/ubuntu/fbq-custom-source/frontend/src/components/sidebar/Sidebar.vue
+--- /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/sidebar/Sidebar.vue	2026-10-02 15:30:17.353795478 +0000
++++ /home/ubuntu/fbq-custom-source/frontend/src/components/sidebar/Sidebar.vue	2026-10-02 15:31:34.059023312 +0000
+@@ -17,14 +17,15 @@
+     <div class="buffer"></div>
+     <div v-if="!isSettings" class="credits">
+       <span v-for="item in externalLinks" :key="item.title">
+-        <a
+-          v-if="item.url === 'help prompt'"
+-          href="#"
+-          @click.prevent="help"
+-          :title="$t('general.help')"
+-          >{{ $t("general.help") }}</a
+-        >
+-        <a v-else :href="item.url" target="_blank" :title="item.title">{{
++	        <a
++	          v-if="item.url === 'help prompt'"
++	          href="#"
++	          @click.prevent="help"
++	          :title="$t('general.help')"
++	          >{{ $t("general.help") }}</a
++	        >
++	        <span v-else-if="item.url === 'version text'" :title="item.title">{{ item.text }}</span>
++	        <a v-else :href="item.url" target="_blank" :title="item.title">{{
+           item.text
+         }}</a>
+       </span>

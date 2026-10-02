@@ -1,0 +1,528 @@
+package http
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"testing"
+	"time"
+
+	storm "github.com/asdine/storm/v3"
+	"github.com/gtsteffaniak/filebrowser/backend/auth"
+	"github.com/gtsteffaniak/filebrowser/backend/common/settings"
+	"github.com/gtsteffaniak/filebrowser/backend/common/utils"
+	"github.com/gtsteffaniak/filebrowser/backend/database/access"
+	"github.com/gtsteffaniak/filebrowser/backend/database/share"
+	"github.com/gtsteffaniak/filebrowser/backend/database/storage/bolt"
+	"github.com/gtsteffaniak/filebrowser/backend/database/users"
+	"github.com/gtsteffaniak/filebrowser/backend/indexing/iteminfo"
+)
+
+func setupTestEnv(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "db")
+	db, err := storm.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err = bolt.NewStorage(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config = &settings.Config // mocked
+	config.Server.SourceMap = map[string]*settings.Source{
+		"/srv": &settings.Source{
+			Path: "/srv",
+			Name: "srv",
+		},
+	}
+	config.Server.NameToSource = map[string]*settings.Source{
+		"srv": &settings.Source{
+			Path: "/srv",
+			Name: "srv",
+		},
+	}
+	// Initialize user resolvers so users package can resolve source names
+	settings.InitializeUserResolvers()
+	mockFileInfoFaster(t) // Mock FileInfoFasterFunc for this test
+}
+
+func mockFileInfoFaster(t *testing.T) {
+	// Backup the original function
+	originalFileInfoFaster := FileInfoFasterFunc
+	// Defer restoration of the original function
+	t.Cleanup(func() { FileInfoFasterFunc = originalFileInfoFaster })
+
+	// Mock the function to skip execution
+	FileInfoFasterFunc = func(opts utils.FileOptions, access *access.Storage, user *users.User, share *share.Storage) (*iteminfo.ExtendedFileInfo, error) {
+		return &iteminfo.ExtendedFileInfo{
+			FileInfo: iteminfo.FileInfo{
+				Path: opts.Path,
+				ItemInfo: iteminfo.ItemInfo{
+					Name: "mocked_file",
+					Size: 12345,
+				},
+			},
+		}, nil
+	}
+}
+
+func TestWithAdminHelper(t *testing.T) {
+	setupTestEnv(t)
+	// Mock a user who has admin permissions
+	adminUser := &users.User{
+		ID:          1,
+		Username:    "admin",
+		Permissions: users.Permissions{Admin: true}, // Ensure the user is an admin
+	}
+	nonAdminUser := &users.User{
+		ID:          2,
+		Username:    "non-admin",
+		Permissions: users.Permissions{Admin: false}, // Non-admin user
+	}
+	// Save the users to the mock database
+	if err := store.Users.Save(adminUser, false, false); err != nil {
+		t.Fatal("failed to save admin user:", err)
+	}
+	if err := store.Users.Save(nonAdminUser, false, false); err != nil {
+		t.Fatal("failed to save non-admin user:", err)
+	}
+	// Test cases for different scenarios
+	testCases := []struct {
+		name               string
+		expectedStatusCode int
+		user               *users.User
+	}{
+		{
+			name:               "Admin access allowed",
+			expectedStatusCode: http.StatusOK, // Admin should be able to access
+			user:               adminUser,
+		},
+		{
+			name:               "Non-admin access forbidden",
+			expectedStatusCode: http.StatusForbidden, // Non-admin should be forbidden
+			user:               nonAdminUser,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Mock the context with the current user
+			data := &requestContext{
+				user: tc.user,
+			}
+			tokenString, _, err := auth.MakeSignedTokenAPI(tc.user, "WEB_TOKEN_"+utils.InsecureRandomIdentifier(4), time.Hour*2, tc.user.Perm, false)
+			if err != nil {
+				t.Fatalf("Error making token for request: %v", err)
+			}
+
+			// Wrap the usersGetHandler with the middleware
+			handler := withAdminHelper(mockHandler)
+
+			// Create a response recorder to capture the handler's output
+			recorder := httptest.NewRecorder()
+			// Create the request and apply the token as a cookie
+			req, err := http.NewRequest(http.MethodGet, "/users", http.NoBody)
+			if err != nil {
+				t.Fatalf("Error creating request: %v", err)
+			}
+			req.AddCookie(&http.Cookie{
+				Name:  "filebrowser_quantum_jwt",
+				Value: tokenString,
+			})
+
+			// Call the handler with the test request and mock context
+			status, err := handler(recorder, req, data)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Verify the status code
+			if status != tc.expectedStatusCode {
+				t.Errorf("\"%v\" expected status code %d, got %d", tc.name, tc.expectedStatusCode, status)
+			}
+		})
+	}
+}
+
+func TestPublicShare_RejectsRevokedJWT(t *testing.T) {
+	setupTestEnv(t)
+
+	victim := &users.User{
+		Username:    "victim",
+		Permissions: users.Permissions{Api: true},
+		Scopes: []users.SourceScope{
+			{Name: "srv", Scope: "/"},
+		},
+	}
+	if err := store.Users.Save(victim, false, false); err != nil {
+		t.Fatal("failed to create victim user:", err)
+	}
+
+	originalAuthKey := settings.Config.Auth.Key
+	settings.Config.Auth.Key = "key"
+	t.Cleanup(func() { settings.Config.Auth.Key = originalAuthKey })
+	if err := store.Settings.Save(&settings.Settings{Auth: settings.Auth{Key: "key"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	tokenString, _, err := auth.MakeSignedTokenAPI(victim, "WEB_TOKEN_"+utils.InsecureRandomIdentifier(4), time.Hour*2, victim.Permissions, false)
+	if err != nil {
+		t.Fatalf("failed to issue token: %v", err)
+	}
+
+	shareLink := &share.Link{
+		Hash:   "revoked_jwt_hash",
+		UserID: victim.ID,
+		CommonShare: share.CommonShare{
+			Source:           "/srv",
+			Path:             "/",
+			AllowedUsernames: []string{"victim"},
+		},
+	}
+	if err := store.Share.Save(shareLink); err != nil {
+		t.Fatal("failed to create share:", err)
+	}
+
+	handler := withHashFile(publicGetResourceHandler)
+
+	makeRequest := func(jwt string) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/public/api/resources?hash=revoked_jwt_hash&path=/", http.NoBody)
+		req.AddCookie(&http.Cookie{
+			Name:  "filebrowser_quantum_jwt",
+			Value: jwt,
+		})
+		handler.ServeHTTP(recorder, req)
+		return recorder
+	}
+
+	rec := makeRequest(tokenString)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("valid token: expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if err := auth.RevokeApiToken(store.Access, tokenString); err != nil {
+		t.Fatalf("failed to revoke token: %v", err)
+	}
+
+	rec = makeRequest(tokenString)
+	if rec.Code == http.StatusOK {
+		t.Fatalf("revoked token: expected non-200 status, got %d (JWT resurrection bypass)", rec.Code)
+	}
+}
+
+func TestExtractUserFromExpiredToken_RejectsRevokedJWT(t *testing.T) {
+	_, tokenString := issueExtractUserTestToken(t, time.Hour*2)
+	if err := auth.RevokeApiToken(store.Access, tokenString); err != nil {
+		t.Fatalf("failed to revoke token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/public/api/resources", http.NoBody)
+	req.AddCookie(&http.Cookie{
+		Name:  "filebrowser_quantum_jwt",
+		Value: tokenString,
+	})
+
+	data := &requestContext{}
+	if got := extractUserFromExpiredToken(req, data); got != nil {
+		t.Fatalf("extractUserFromExpiredToken() = user %q, want nil for revoked token", got.Username)
+	}
+}
+
+func TestExtractUserFromExpiredToken_AcceptsExpiredNonRevoked(t *testing.T) {
+	user, tokenString := issueExtractUserTestToken(t, -time.Hour)
+
+	req := httptest.NewRequest(http.MethodGet, "/public/api/resources", http.NoBody)
+	req.AddCookie(&http.Cookie{
+		Name:  "filebrowser_quantum_jwt",
+		Value: tokenString,
+	})
+
+	data := &requestContext{}
+	got := extractUserFromExpiredToken(req, data)
+	if got == nil {
+		t.Fatal("extractUserFromExpiredToken() = nil, want user for expired non-revoked token")
+	}
+	if got.Username != user.Username {
+		t.Fatalf("extractUserFromExpiredToken() username = %q, want %q", got.Username, user.Username)
+	}
+}
+
+func TestExtractUserFromExpiredToken_RejectsRevokedExpired(t *testing.T) {
+	_, tokenString := issueExtractUserTestToken(t, -time.Hour)
+	if err := auth.RevokeApiToken(store.Access, tokenString); err != nil {
+		t.Fatalf("failed to revoke token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/public/api/resources", http.NoBody)
+	req.AddCookie(&http.Cookie{
+		Name:  "filebrowser_quantum_jwt",
+		Value: tokenString,
+	})
+
+	data := &requestContext{}
+	if got := extractUserFromExpiredToken(req, data); got != nil {
+		t.Fatalf("extractUserFromExpiredToken() = user %q, want nil for revoked expired token", got.Username)
+	}
+}
+
+func issueExtractUserTestToken(t *testing.T, duration time.Duration) (*users.User, string) {
+	t.Helper()
+	setupTestEnv(t)
+
+	user := &users.User{
+		Username:    "victim",
+		Permissions: users.Permissions{Api: true},
+	}
+	if err := store.Users.Save(user, false, false); err != nil {
+		t.Fatal("failed to create user:", err)
+	}
+	got, err := store.Users.Get(user.ID)
+	if err != nil {
+		t.Fatal("failed to load user:", err)
+	}
+	got.Permissions = users.Permissions{Api: true}
+	if err = store.Users.Save(got, false, false); err != nil {
+		t.Fatal("failed to set user permissions:", err)
+	}
+
+	originalAuthKey := settings.Config.Auth.Key
+	settings.Config.Auth.Key = "key"
+	t.Cleanup(func() { settings.Config.Auth.Key = originalAuthKey })
+	if err = store.Settings.Save(&settings.Settings{Auth: settings.Auth{Key: "key"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	tokenString, _, err := auth.MakeSignedTokenAPI(got, "WEB_TOKEN_"+utils.InsecureRandomIdentifier(4), duration, got.Permissions, false)
+	if err != nil {
+		t.Fatalf("failed to issue token: %v", err)
+	}
+	return got, tokenString
+}
+
+func TestPublicShareHandlerAuthentication(t *testing.T) {
+	setupTestEnv(t)
+
+	const passwordBcrypt = "$2y$10$TFAmdCbyd/mEZDe5fUeZJu.MaJQXRTwdqb/IQV.eTn6dWrF58gCSe" // bcrypt hashed password
+
+	// Create and save a dummy user with ID 1 (all shares use UserID: 1)
+	dummyUser := &users.User{
+		ID:          1,
+		Username:    "testuser",
+		Permissions: users.Permissions{Admin: false},
+		Scopes: []users.SourceScope{
+			{Name: "srv", Scope: "/"}, // Root scope on srv source
+		},
+	}
+	if err := store.Users.Save(dummyUser, false, false); err != nil {
+		t.Fatal("failed to save dummy user:", err)
+	}
+
+	testCases := []struct {
+		name               string
+		share              *share.Link
+		token              string
+		password           string
+		extraHeaders       map[string]string
+		expectedStatusCode int
+	}{
+		{
+			name: "Public share, no auth required",
+			share: &share.Link{
+				Hash:   "public_hash",
+				UserID: 1,
+				CommonShare: share.CommonShare{
+					Source: "/srv",
+				},
+			},
+			expectedStatusCode: http.StatusOK, // zero means 200 on helpers
+		},
+		{
+			name: "Private share, valid password when token exists",
+			share: &share.Link{
+				Hash:         "pw_and_token_hash",
+				UserID:       1,
+				PasswordHash: passwordBcrypt,
+				Token:        "some_random_token",
+				CommonShare: share.CommonShare{
+					Source: "/srv",
+				},
+			},
+			extraHeaders: map[string]string{
+				"X-SHARE-PASSWORD": "password",
+			},
+			expectedStatusCode: http.StatusOK, // zero means 200 on helpers
+		},
+		{
+			name: "Private share, no auth provided",
+			share: &share.Link{
+				Hash:         "private_hash",
+				UserID:       1,
+				PasswordHash: passwordBcrypt,
+				Token:        "123",
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name: "Private share, valid token",
+			share: &share.Link{
+				Hash:         "token_hash",
+				UserID:       1,
+				PasswordHash: passwordBcrypt,
+				Token:        "123",
+				CommonShare: share.CommonShare{
+					Source: "/srv",
+				},
+			},
+			token:              "123",
+			expectedStatusCode: http.StatusOK, // zero means 200 on helpers
+		},
+		{
+			name: "Private share, invalid password",
+			share: &share.Link{
+				Hash:         "pw_hash",
+				UserID:       1,
+				PasswordHash: passwordBcrypt,
+				Token:        "123",
+			},
+			extraHeaders: map[string]string{
+				"X-SHARE-PASSWORD": "wrong-password",
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Save the share in the mock store
+			if err := store.Share.Save(tc.share); err != nil {
+				t.Fatal("failed to save share:", err)
+			}
+
+			// Create a response recorder to capture handler output
+			recorder := httptest.NewRecorder()
+
+			// Wrap the handler with authentication middleware
+			handler := withHashFileHelper(publicGetResourceHandler)
+			if err := store.Settings.Save(&settings.Settings{
+				Auth: settings.Auth{
+					Key: "key",
+				},
+			}); err != nil {
+				t.Fatalf("failed to save settings: %v", err)
+			}
+
+			// Prepare the request with query parameters and optional headers
+			req := newTestRequest(t, tc.share.Hash, tc.token, tc.password, tc.extraHeaders)
+
+			// Serve the request
+			status, _ := handler(recorder, req, &requestContext{})
+
+			// Check if the response matches the expected status code
+			if status != tc.expectedStatusCode {
+				t.Errorf("expected status code %d, got %d", tc.expectedStatusCode, status)
+			}
+		})
+	}
+}
+
+func TestWithHashFileHelper_SkipsPrefetchForMediaSubtitles(t *testing.T) {
+	setupTestEnv(t)
+
+	dummyUser := &users.User{
+		ID:       1,
+		Username: "testuser",
+		Scopes: []users.SourceScope{
+			{Name: "srv", Scope: "/"},
+		},
+	}
+	if err := store.Users.Save(dummyUser, false, false); err != nil {
+		t.Fatal("failed to save dummy user:", err)
+	}
+
+	shareLink := &share.Link{
+		Hash:   "subtitle_share_hash",
+		UserID: 1,
+		CommonShare: share.CommonShare{
+			Source: "/srv",
+			Path:   "/",
+		},
+	}
+	if err := store.Share.Save(shareLink); err != nil {
+		t.Fatal("failed to save share:", err)
+	}
+
+	fileInfoCalled := false
+	originalFileInfoFaster := FileInfoFasterFunc
+	t.Cleanup(func() { FileInfoFasterFunc = originalFileInfoFaster })
+	FileInfoFasterFunc = func(opts utils.FileOptions, access *access.Storage, user *users.User, share *share.Storage) (*iteminfo.ExtendedFileInfo, error) {
+		fileInfoCalled = true
+		return nil, fmt.Errorf("FileInfoFasterFunc should not be called for /media/subtitles")
+	}
+
+	handlerCalled := false
+	handler := withHashFileHelper(func(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
+		handlerCalled = true
+		return http.StatusOK, nil
+	})
+
+	if err := store.Settings.Save(&settings.Settings{Auth: settings.Auth{Key: "key"}}); err != nil {
+		t.Fatal("failed to save settings:", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/public/api/media/subtitles?hash=subtitle_share_hash&path=/video.mkv&name=sub.srt", http.NoBody)
+
+	status, err := handler(recorder, req, &requestContext{})
+	if status != http.StatusOK {
+		t.Fatalf("expected status %d, got %d (err=%v)", http.StatusOK, status, err)
+	}
+	if !handlerCalled {
+		t.Fatal("expected wrapped handler to run")
+	}
+	if fileInfoCalled {
+		t.Fatal("FileInfoFasterFunc should not be called for GET /media/subtitles")
+	}
+}
+
+// Helper function to create a new HTTP request with optional parameters
+func newTestRequest(t *testing.T, hash, token, password string, headers map[string]string) *http.Request {
+	req := newHTTPRequest(t, hash, func(r *http.Request) {
+		// Set query parameters based on provided values
+		q := r.URL.Query()
+		q.Set("path", "/")
+		q.Set("hash", hash)
+		if token != "" {
+			q.Set("token", token)
+		}
+		if password != "" {
+			q.Set("password", password)
+		}
+		r.URL.RawQuery = q.Encode()
+
+		// Set any extra headers if provided
+		for key, value := range headers {
+			r.Header.Set(key, value)
+		}
+	})
+	return req
+}
+
+func mockHandler(w http.ResponseWriter, r *http.Request, d *requestContext) (int, error) {
+	return http.StatusOK, nil // mock response
+}
+
+// Modify newHTTPRequest to accept the hash and use it in the URL path.
+func newHTTPRequest(t *testing.T, hash string, requestModifiers ...func(*http.Request)) *http.Request {
+	t.Helper()
+	url := "/public/share/" + hash + "/" // Dynamically include the hash in the URL path
+	r, err := http.NewRequest(http.MethodGet, url, http.NoBody)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	for _, modify := range requestModifiers {
+		modify(r)
+	}
+	return r
+}

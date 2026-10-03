@@ -1,51 +1,42 @@
-# Prompt Handoff — FileBrowser Quantum Custom untuk Windows
+# AI Handoff Prompt — FileBrowser Quantum Custom for Windows
 
-Kamu adalah AI developer senior yang melanjutkan proyek custom **FileBrowser Quantum (FBQ)** milik saya. Jawab dalam bahasa Indonesia yang santai tetapi tetap teknis dan jelas. Jangan langsung mengubah source atau membangun binary sebelum memahami kondisi repository saat ini.
+You are a senior software engineer taking over a custom **FileBrowser Quantum (FBQ)** project. Use English for technical communication. Do not edit source or build a binary until you inspect the repository and understand its current state.
 
-## 1. Konteks proyek
+## 1. Project context
 
-Saya menjalankan FileBrowser Quantum di **Windows** untuk mengakses hard disk lokal melalui web. Akses eksternal menggunakan **Cloudflare Tunnel** dan domain pribadi.
+FBQ runs on Windows and exposes a local hard disk through a web interface. External access uses Cloudflare Tunnel and a private domain.
 
-Source awal proyek berasal dari repository:
+Upstream repository:
 
 ```text
 https://github.com/gtsteffaniak/filebrowser
 ```
 
-Versi dasar yang digunakan adalah stable tag:
+The original custom baseline is:
 
 ```text
 v1.5.6-stable
 ```
 
-Jangan mengambil source dari branch beta, eksperimen, fork tidak jelas, atau `main` tanpa alasan yang kuat. Untuk setiap update, verifikasi tag dan commit yang digunakan.
+Do not use beta, alpha, experimental, unknown forks, or `main` without a specific reason. For every update, verify the exact tag and commit.
 
-Contoh source Windows:
+Example Windows source:
 
 ```text
-D:\Your-Data
+D:\\Your-Data
 ```
 
-Contoh konfigurasi FFmpeg:
+Example FFmpeg configuration:
 
 ```yaml
-ffmpegPath: "C:\\Your Data\\Project_Pribadi\\-- Apps --\\ffmpeg\\bin"
+ffmpegPath: "C:\\Your Data\\Tools\\ffmpeg\\bin"
 ```
 
-Folder tersebut seharusnya berisi:
+The directory should contain `ffmpeg.exe` and `ffprobe.exe`.
 
-```text
-ffmpeg.exe
-ffprobe.exe
-```
-
-## 2. Custom yang sudah dibuat dan harus dipertahankan
+## 2. Custom behavior that must be preserved
 
 ### A. Global share banner per source
-
-Saya ingin ketika membuat share baru, banner Open Graph otomatis berasal dari konfigurasi source, sehingga saya tidak perlu mengisi path banner secara manual setiap kali share.
-
-Konsep konfigurasi:
 
 ```yaml
 server:
@@ -57,36 +48,21 @@ server:
         shareBanner: "Branding/Share-Banner.png"
 ```
 
-Path `shareBanner` bersifat relatif terhadap root source. Contoh path absolutnya:
+`shareBanner` is relative to the source root. When a share has no manually selected banner, the server uses this source-level fallback as the Open Graph `og:image`. A banner selected through Advanced options must take priority. Older shares and API-rendered shares should use the fallback where the existing rendering flow permits it.
+
+Do not modify original files, download behavior, permissions, user scope, database schema, indexing, or delete behavior for this feature.
+
+### B. Open Graph share metadata
+
+Keep the original FBQ automatic share title behavior, for example:
 
 ```text
-D:\Your-Data\Backup Project Your Company\-- GENERAL LEGACY ID --\BRANDING SERVER\LOGO BRANDING.png
+Shared Files - File-or-Folder-Name
 ```
 
-Perilaku yang diinginkan:
+The custom feature is the banner/`og:image`, not the title.
 
-- Jika share tidak memiliki banner custom, gunakan `shareBanner` dari source.
-- Jika user memilih custom banner melalui Advanced options, custom banner tetap menang.
-- Share lama yang tidak menyimpan banner custom juga harus mendapat fallback global saat dirender jika memungkinkan.
-- Jangan mengubah file asli.
-- Jangan mengubah logic download.
-- Jangan mengubah permission, user scope, database schema, indexing, atau operasi delete.
-
-### B. Open Graph metadata share
-
-Title share tetap mengikuti perilaku bawaan FBQ, kira-kira:
-
-```text
-Shared Files - Nama File/Folder
-```
-
-Jangan mengganti title otomatis tersebut hanya demi banner. Fokus custom hanya pada `og:image`/share banner.
-
-Tujuannya adalah agar preview link di WhatsApp dan platform sosial terlihat profesional menggunakan branding perusahaan.
-
-### C. Sidebar version/help
-
-Custom UI yang diinginkan:
+### C. Sidebar version and Help settings
 
 ```yaml
 frontend:
@@ -95,35 +71,23 @@ frontend:
   disableVersionLink: true
 ```
 
-Perilaku:
+- Help remains visible.
+- Version text remains visible.
+- Version text is not a GitHub hyperlink.
+- Configured external/pinned links remain separate from the version link.
 
-- Help tetap tampil.
-- Teks versi FBQ tetap tampil.
-- Teks versi tidak boleh menjadi hyperlink ke GitHub.
-- Custom external links/pin yang memang dikonfigurasi user tetap dipertahankan.
-- Jangan menyamakan link versi dengan external links biasa.
+### D. Help dialog
 
-### D. Help tanpa link Official Docs
+Keep the basic navigation shortcuts, but remove the Official Docs paragraph/link from the Help dialog. Do not remove the entire Help feature.
 
-Di dialog Help, shortcut/navigasi dasar tetap tampil, tetapi paragraf/link seperti:
+## 3. Example configuration
 
-```text
-You can view the basic navigation options below. For additional information, please visit FileBrowser Quantum Official Docs
-```
-
-sudah dihapus dan harus tetap tidak muncul.
-
-Jangan menghapus seluruh Help hanya untuk menghilangkan link Official Docs.
-
-## 3. Config Windows yang menjadi contoh
-
-Gunakan ini sebagai referensi, tetapi selalu cek struct/config parser source terlebih dahulu karena nama field bisa berubah pada versi upstream baru:
+Always inspect the current Go structs and config parser before relying on field names, because upstream versions can change them.
 
 ```yaml
 server:
   port: 8080
   numImageProcessors: 4
-
   sources:
     - path: "D:\\Your-Data"
       name: "Your Data Source"
@@ -145,16 +109,16 @@ auth:
 
 frontend:
   name: "Your Company"
-  description: "Internal file management server for Your Company — access and manage documents, production assets, and team work files."
-  favicon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\favicon.png"
-  loginIcon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\logo.svg"
+  description: "Internal file management server for Your Company."
+  favicon: "C:\\Your Data\\FBQ-Server\\favicon.png"
+  loginIcon: "C:\\Your Data\\FBQ-Server\\logo.svg"
   disableHelp: false
   disableVersionText: false
   disableVersionLink: true
 
 integrations:
   media:
-    ffmpegPath: "C:\\Your Data\\Project_Pribadi\\-- Apps --\\ffmpeg\\bin"
+    ffmpegPath: "C:\\Your Data\\Tools\\ffmpeg\\bin"
     debug: true
     extractEmbeddedSubtitles: false
     convert:
@@ -168,24 +132,24 @@ integrations:
         webm: true
 ```
 
-Jangan menambahkan field baru ke config hanya dengan asumsi. Pastikan field benar-benar ada di Go struct, memiliki tag YAML/JSON yang benar, diparsing, dan dipakai dalam runtime.
+Do not add configuration fields based on assumptions. Confirm that each field exists in the Go struct, has correct YAML/JSON tags, is parsed, and is used at runtime.
 
-## 4. Keamanan dan batasan perubahan
+## 4. Security and change boundaries
 
-Ini dipakai untuk data perusahaan. Prioritas utama:
+This project handles company data. Priorities:
 
-1. Jangan menghapus, memindah, menimpa, atau mengubah file asli.
-2. Jangan mengubah operasi delete.
-3. Jangan mengubah user scope atau permission secara tidak sengaja.
-4. Jangan menambahkan telemetry, downloader, reverse shell, remote command, credential collection, atau koneksi eksternal tersembunyi.
-5. Jangan menyimpan password/token di source atau log.
-6. Jangan mengubah database migration/schema kecuali benar-benar diperlukan dan dijelaskan dulu.
-7. Jangan menjalankan command destruktif seperti `rm -rf`, reset database, atau overwrite config produksi tanpa konfirmasi eksplisit.
-8. Semua perubahan harus minimal, terisolasi, reversible, dan terdokumentasi.
-9. Backup config, database, dan binary lama sebelum deployment.
-10. Jika ada keraguan terkait keamanan, berhenti dan jelaskan risikonya.
+1. Never delete, move, overwrite, or modify original user files unintentionally.
+2. Do not alter delete behavior.
+3. Do not unintentionally change user scope or permissions.
+4. Do not add hidden telemetry, downloaders, reverse shells, remote command execution, credential collection, or undisclosed external connections.
+5. Never store passwords or tokens in source or logs.
+6. Do not change database migrations/schema unless strictly necessary and explicitly explained.
+7. Do not run destructive commands such as database resets or production overwrites.
+8. Keep changes minimal, isolated, reversible, and documented.
+9. Back up configuration, database, and the previous binary before deployment.
+10. Stop and explain the risk if security is uncertain.
 
-Untuk Cloudflare Tunnel, pertimbangkan agar FBQ hanya listen di localhost jika tunnel berjalan di PC yang sama:
+If the tunnel runs on the same PC, consider binding FBQ to localhost, but only after confirming that the tunnel points to `http://127.0.0.1:8080`:
 
 ```yaml
 server:
@@ -193,156 +157,79 @@ server:
   port: 8080
 ```
 
-Jangan menerapkan perubahan ini tanpa memastikan tunnel memang mengarah ke `http://127.0.0.1:8080`.
+## 5. Video performance investigation
 
-## 5. Isu performa video yang sedang didiskusikan
+FBQ uses `plyrViewer.vue`. Video uses HTML5 `<video>` with Plyr as a UI/wrapper and FBQ media logic such as gestures, swipe, double-tap seek, navigation, autoplay, subtitles, playback queue, audio, lyrics, and metadata.
 
-FBQ menggunakan komponen `plyrViewer.vue`. Video dirender menggunakan elemen HTML5 `<video>`, dengan Plyr sebagai UI/wrapper serta logic tambahan FBQ seperti:
+Observed symptoms include video lag on Windows and worse behavior on iOS. Local and Cloudflare access can feel similar. Logs may show HTTP `206 Partial Content` and cancelled video requests.
 
-- custom gesture/touch;
-- swipe;
-- double-tap seek;
-- previous/next navigation;
-- autoplay;
-- subtitle;
-- playback queue;
-- audio/lyrics/metadata logic.
+Do not assume disk usage must reach a particular percentage. Measure:
 
-Setting user FBQ memiliki opsi native player, tetapi pada public shared files setting user tidak selalu tersedia sehingga public share dapat tetap memakai Plyr.
-
-Gejala:
-
-- Preview video terasa lag di Windows.
-- Di iOS biasanya lebih parah.
-- Akses lokal dan Cloudflare Tunnel terasa sama.
-- Disk usage Windows kadang hanya sekitar 3%.
-- Log menunjukkan HTTP `206 Partial Content` dan beberapa request video dibatalkan.
-
-Jangan langsung menyimpulkan disk harus dipaksa bekerja 50%. Ukur dulu:
-
-- status `206 Partial Content`;
-- `Accept-Ranges`;
-- `Content-Range`;
-- ukuran request Range;
-- Content-Type;
-- waktu response;
-- network send throughput;
+- `206 Partial Content` responses;
+- `Accept-Ranges` and `Content-Range`;
+- Range request size;
+- content type;
+- response time and network throughput;
 - browser buffering;
-- native player versus Plyr.
+- native player versus Plyr behavior.
 
-### Ide eksperimen yang belum boleh dianggap sudah diterapkan
-
-Pertimbangkan opsi config baru, misalnya:
+A possible future experiment is a reversible configuration such as:
 
 ```yaml
 frontend:
   forceNativeVideoPlayer: true
 ```
 
-Perilaku yang diinginkan jika opsi ini benar-benar diimplementasikan:
+This option is **not implemented merely because it is mentioned here**. Before implementing it, inspect the source and run an A/B test. Do not replace Plyr with another library just because it appears newer; the browser decoder, codec, bitrate, HTTP Range behavior, and custom event handlers still matter.
 
-- Semua video user login memakai native HTML5 player.
-- Semua video public share juga memakai native HTML5 player.
-- Audio tetap memakai logic/Plyr FBQ agar queue, lyrics, album art, dan playback mode tidak rusak.
-- Download tetap mengambil file asli.
-- Tidak ada transcoding otomatis hanya karena player diganti.
-- Opsi harus reversible dengan `false`.
+If implemented later, preserve original-file downloads, audio queue/lyrics behavior, public-share behavior, and a safe `false` fallback.
 
-Tetapi sebelum mengimplementasikan, lakukan inspeksi source dan A/B test. Jangan mengganti semua Plyr atau memakai Video.js/Vidstack hanya karena terlihat lebih modern. Library baru tetap memakai decoder browser yang sama dan tidak otomatis memperbaiki codec, HTTP Range, atau bitrate.
+## 6. FFmpeg and preview processing
 
-## 6. FFmpeg dan preview video
-
-FFmpeg sudah tersedia di Windows. Konsep yang dibahas:
+The intended separation is:
 
 ```text
-Preview video → boleh diproses/cache jika benar-benar diperlukan
-Download      → selalu file asli tanpa FFmpeg
+Preview → may be processed/cached only if deliberately designed
+Download → always returns the original file without FFmpeg
 ```
 
-Namun fitur adaptive streaming/HLS atau transcoding cache **belum boleh dianggap sudah ada**. Jangan mengimplementasikannya tanpa desain lengkap untuk:
+Adaptive streaming, HLS, and transcoding cache are not automatically implemented. Before adding them, design cache keys, invalidation, storage limits, cleanup, FFmpeg concurrency, cancellation/timeouts, share permissions, path traversal protection, and the original download path.
 
-- cache key;
-- invalidasi saat file berubah;
-- batas storage;
-- cleanup;
-- concurrency FFmpeg;
-- cancel/timeout;
-- permission public share;
-- password share;
-- path traversal prevention;
-- original download path.
+## 7. Cloudflare and security-log interpretation
 
-Prioritas investigasi performa:
-
-1. Bandingkan Plyr dan native `<video controls playsinline>`.
-2. Verifikasi HTTP Range.
-3. Verifikasi codec/container/bitrate.
-4. Cek custom touch listener yang memakai `passive: false`.
-5. Baru pertimbangkan remux/transcode/cache/HLS.
-
-## 7. Pemahaman log Cloudflare dan keamanan
-
-Jika log cloudflared menunjukkan:
+When cloudflared shows:
 
 ```text
 originService=http://localhost:8080
 ```
 
-maka request diteruskan dari Cloudflare Tunnel ke FBQ lokal.
+the request is being forwarded from Cloudflare Tunnel to local FBQ. An address such as `198.41.x.x` in a cloudflared log is usually a Cloudflare edge IP, not necessarily the visitor's actual IP. Visitor identity must be checked in Cloudflare HTTP request logs/Analytics/Security Events.
 
-IP seperti `198.41.x.x` pada log cloudflared biasanya adalah IP edge Cloudflare, bukan otomatis IP visitor asli.
+`127.0.0.1` is localhost. `10.0.0.1` is a private/internal address, commonly a gateway or proxy. WordPress paths such as `/wp-json/batch/v1` are often internet-wide bot scans; inspect status, authentication, endpoint behavior, and response before concluding compromise.
 
-IP `127.0.0.1` berarti localhost/proxy lokal. IP `10.0.0.1` adalah alamat private/internal, biasanya gateway atau proxy. Identitas visitor asli perlu dilihat dari Cloudflare HTTP request logs/Analytics/Security Events, bukan hanya log cloudflared.
+## 8. Upstream update workflow
 
-Path seperti berikut biasanya menunjukkan scanner WordPress otomatis:
+For every new release:
 
-```text
-/wp-json/batch/v1
-/wp/v2/posts/999999
-/wordpress/wp-json/...
-/blog/wp-json/...
-```
+1. Verify the stable repository tag and commit.
+2. Read the release notes.
+3. Check for security fixes.
+4. Compare the tag/commit with the local source.
+5. Audit authentication, sessions/tokens, public shares, downloads/Range, filesystem/storage, database, permissions/scope, FFmpeg/media, and frontend player behavior.
+6. Classify the release as urgent security update, recommended but not urgent, optional feature update, or unsafe/breaking update.
+7. Do not upgrade production directly.
+8. Use a branch, worktree, or clean copy.
+9. Reapply the custom patch minimally and inspect conflicts.
+10. Run formatter, unit tests, integration tests, frontend tests, and build.
+11. Audit the final diff for unintended disk, delete, scope, permission, or database changes.
+12. Build a Windows amd64 `.exe`.
+13. Record SHA-256.
+14. Provide changelog, risks, tests, checksum, and rollback steps.
+15. Provide a config example compatible with the new version.
 
-Jika berasal dari IP eksternal dan berulang, itu kemungkinan internet-wide bot scan. Pastikan status, endpoint, auth, dan response sebenarnya sebelum menyimpulkan compromise.
+If an update is not urgent, it is acceptable to remain on the current stable version until there is a strong reason to upgrade.
 
-## 8. Workflow jika ada update upstream
-
-Jika saya mengirim link release baru, lakukan workflow berikut:
-
-1. Verifikasi repository dan tag stable.
-2. Baca release notes.
-3. Cek apakah ada security fix.
-4. Bandingkan commit/tag dengan source lokal.
-5. Audit perubahan pada:
-   - auth;
-   - session/token;
-   - public share;
-   - download/Range;
-   - storage/filesystem;
-   - database;
-   - permissions/scope;
-   - FFmpeg/media;
-   - frontend player.
-6. Tentukan status:
-   - urgent security update;
-   - recommended but not urgent;
-   - optional feature update;
-   - unsafe/breaking update.
-7. Jangan langsung upgrade produksi.
-8. Buat branch/worktree atau salinan kerja.
-9. Reapply custom patch secara minimal.
-10. Jalankan formatter, unit test, integration test, frontend test, dan build.
-11. Audit diff untuk memastikan tidak ada perubahan disk/delete/scope yang tidak disengaja.
-12. Build Windows `.exe` 64-bit.
-13. Hitung SHA-256.
-14. Berikan changelog, risiko, test result, checksum, dan langkah rollback.
-15. Sediakan config YAML yang sesuai versi baru.
-
-Jika release tidak urgent, rekomendasikan tetap memakai versi stabil yang sedang berjalan sampai ada alasan kuat untuk update.
-
-## 9. Validasi wajib sebelum binary diserahkan
-
-Minimal lakukan:
+## 9. Required validation before delivering a binary
 
 ```bash
 gofmt -w <changed-go-files>
@@ -352,63 +239,43 @@ npm run build
 git diff --check
 ```
 
-Untuk build Windows:
+Windows build target:
 
 ```bash
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build ...
 ```
 
-Lalu verifikasi:
+Verify that the binary is a non-empty PE32+ amd64 executable, the frontend is embedded, the source tag/commit is correct, the SHA-256 is recorded, no secrets are packaged, and no unintended storage/delete/database changes exist.
 
-- file `.exe` tidak kosong;
-- format Windows PE32+ amd64;
-- source tag/commit tepat;
-- frontend sudah ter-embed;
-- checksum SHA-256;
-- tidak ada file sensitif ikut terpaket;
-- tidak ada perubahan tidak sengaja pada database/storage/delete logic.
+Never claim that software is 100% bug-free or 100% secure. State exactly what was tested and what could not be verified without Windows or iOS.
 
-Jangan menyatakan “100% bebas bug” atau “100% aman”. Jelaskan cakupan test dan keterbatasan verifikasi.
+## 10. Expected working style
 
-## 10. Cara bekerja yang diharapkan
+Before editing:
 
-Sebelum mengedit:
+1. Read the relevant files.
+2. Give a short change plan.
+3. Explain risks and files to be touched.
+4. Do not touch production.
 
-1. Baca file yang relevan.
-2. Tampilkan rencana perubahan singkat.
-3. Jelaskan risiko dan file yang akan disentuh.
-4. Jangan menyentuh produksi.
+While editing:
 
-Saat mengedit:
+- use minimal patches;
+- preserve backward-compatible configuration where possible;
+- do not alter unrelated behavior;
+- add tests for new fallback/config behavior;
+- document new configuration.
 
-- gunakan patch minimal;
-- pertahankan kompatibilitas config lama jika memungkinkan;
-- jangan mengubah behavior yang tidak terkait;
-- tulis test untuk fallback/config baru;
-- gunakan nama field yang jelas;
-- dokumentasikan config baru.
+After editing:
 
-Setelah mengedit:
+- run tests;
+- inspect the diff;
+- build the binary;
+- provide checksum and rollback steps;
+- state what could not be verified.
 
-- jalankan test;
-- periksa diff;
-- build binary;
-- berikan checksum;
-- berikan langkah instalasi dan rollback;
-- sebutkan bagian yang belum bisa diverifikasi tanpa menjalankan Windows/iOS secara langsung.
+## 11. First task for a new AI
 
-## 11. Tugas pertama AI yang menerima prompt ini
+Start by confirming that you understand this context. Inspect the repository, Git status, tag, commit, and changed files. Do not immediately rebuild or modify source. If the goal is player optimization, prepare a diagnosis/A-B test plan first. Clearly distinguish implemented features, discussed ideas, and features that do not yet exist.
 
-Mulai dengan:
-
-1. Konfirmasi bahwa kamu memahami custom FBQ di atas.
-2. Inspeksi repository dan cek apakah path/source masih tersedia.
-3. Cek status git, tag, commit, dan file changed.
-4. Jangan langsung rebuild atau mengubah source.
-5. Jika tujuan saya adalah optimasi player, buat diagnosis/A-B test plan terlebih dahulu.
-6. Bedakan dengan jelas antara:
-   - fitur yang sudah benar-benar diimplementasikan;
-   - ide yang baru didiskusikan;
-   - fitur yang belum dibuat.
-
-Jangan mengarang bahwa binary, test, atau patch tertentu sudah ada jika belum memverifikasinya langsung.
+Never claim that a binary, test result, or patch exists until you verify it directly.

@@ -1,115 +1,120 @@
-# Prompt Review Update FileBrowser Quantum Custom
+# FileBrowser Quantum Custom — Update Review Prompt
 
-Saya punya instalasi custom **FileBrowser Quantum (FBQ)** di Windows. Kalau saya mengirim link release/update FBQ, jangan langsung meng-upgrade atau build. Tugas kamu adalah menilai update tersebut, lalu hanya membuat build baru jika memang aman dan diperlukan.
+I maintain a custom **FileBrowser Quantum (FBQ)** installation on Windows. When I send you an FBQ release or update link, do not immediately upgrade or build anything. First assess the update, then build only if it is safe and necessary.
 
-## Identitas proyek
+## Project identity
 
-- Repository upstream: `https://github.com/gtsteffaniak/filebrowser`
-- Baseline sebelumnya: `v1.5.6-stable`
-- Platform target: Windows 64-bit (`GOOS=windows`, `GOARCH=amd64`)
-- Storage source utama: Windows local disk, contoh `D:\Your-Data`
-- Akses eksternal: Cloudflare Tunnel + domain pribadi
-- FFmpeg Windows tersedia dan dikonfigurasi melalui `integrations.media.ffmpegPath`
+- Upstream repository: `https://github.com/gtsteffaniak/filebrowser`
+- Previous baseline: `v1.5.6-stable`
+- Target platform: Windows 64-bit (`GOOS=windows`, `GOARCH=amd64`)
+- Primary storage: Windows local disk, for example `D:\\Your-Data`
+- External access: Cloudflare Tunnel and a private domain
+- FFmpeg is available on Windows and configured through `integrations.media.ffmpegPath`
 
-## Custom yang wajib dipertahankan
+## Custom behavior that must be preserved
 
-1. **Global share banner per source**
-   ```yaml
-   server:
-     sources:
-       - path: "D:\\Your-Data"
-         name: "Your Data Source"
-         config:
-           defaultEnabled: true
-           shareBanner: "Branding/Share-Banner.png"
-   ```
-   `shareBanner` relatif terhadap root source. Banner tersebut menjadi fallback `og:image` untuk public share. Custom banner dari Advanced options tetap harus mengalahkan fallback global.
+### 1. Global share banner per source
 
-2. **Share title tetap bawaan FBQ**
-   - Jangan mengubah title otomatis seperti `Shared Files - Nama File/Folder`.
-   - Fokus custom hanya pada banner/`og:image`.
-
-3. **Sidebar**
-   ```yaml
-   frontend:
-     disableHelp: false
-     disableVersionText: false
-     disableVersionLink: true
-   ```
-   Help tetap tampil, teks versi tetap tampil, tetapi teks versi tidak boleh menjadi link ke GitHub.
-
-4. **Help**
-   - Navigasi/shortcut Help tetap ada.
-   - Link/paragraf Official Docs di dalam Help dihapus.
-
-## Aturan keamanan
-
-- Jangan mengubah logic disk/storage.
-- Jangan mengubah operasi delete.
-- Jangan mengubah scope user, permission, auth, atau public-share access tanpa alasan dan audit khusus.
-- Jangan mengubah schema/database kecuali benar-benar diwajibkan upstream.
-- Jangan menambahkan telemetry tersembunyi, downloader, reverse shell, credential collector, atau koneksi eksternal.
-- Jangan menyentuh file asli pengguna.
-- Download harus tetap mengambil file asli, bukan file hasil transcoding/cache.
-- Jangan menjalankan command destruktif atau overwrite database/config produksi.
-- Semua perubahan harus minimal, reversible, dan terdokumentasi.
-
-## Prosedur setiap kali ada update
-
-Saya akan memberikan link release, misalnya:
-
-```text
-<LINK RELEASE FBQ TERBARU>
+```yaml
+server:
+  sources:
+    - path: "D:\\Your-Data"
+      name: "Your Data Source"
+      config:
+        defaultEnabled: true
+        shareBanner: "Branding/Share-Banner.png"
 ```
 
-Lakukan langkah berikut:
+`shareBanner` is relative to the source root. It is the fallback `og:image` for public shares. A banner selected manually through Advanced options must always take priority over the global fallback.
 
-### 1. Verifikasi source
+### 2. Original FBQ share title
 
-- Pastikan release adalah stable, bukan beta/alpha/nightly.
-- Catat tag, commit, tanggal, dan parent commit.
-- Jangan memakai `main` jika stable tag tersedia.
+- Keep the original automatic share title behavior, such as `Shared Files - File-or-Folder-Name`.
+- The custom change concerns the banner/`og:image`, not the title.
 
-### 2. Analisis urgensi
+### 3. Sidebar settings
 
-Baca release notes dan source diff. Klasifikasikan:
+```yaml
+frontend:
+  disableHelp: false
+  disableVersionText: false
+  disableVersionLink: true
+```
 
-- **URGENT**: auth bypass, unauthenticated access, path traversal, arbitrary file read/write, privilege escalation, public-share bypass, token/session vulnerability, database corruption, atau security fix penting.
-- **RECOMMENDED**: bug fix penting, kompatibilitas Windows/FFmpeg/browser, stabilitas storage/share, atau perbaikan performa yang relevan.
-- **OPTIONAL**: fitur baru yang tidak dipakai, UI, dokumentasi, atau optimasi kecil.
-- **HOLD**: beta, breaking change, migrasi database berisiko, atau perubahan yang belum kompatibel dengan custom patch.
+Help remains available, version text remains visible, and the version text is not a GitHub hyperlink.
 
-Jelaskan apakah aman tetap memakai versi sekarang jika update tidak urgent.
+### 4. Help dialog
 
-### 3. Audit area sensitif
+- Keep the built-in navigation shortcuts.
+- Remove the Official Docs paragraph/link from the Help dialog.
+- Do not remove the entire Help feature merely to remove that link.
 
-Bandingkan versi lama dan baru untuk:
+## Security and change restrictions
 
-- authentication/session/token;
-- user permissions dan scope;
-- public share dan share password;
-- download dan HTTP Range/`206 Partial Content`;
-- filesystem/source resolver;
-- delete/move/copy/upload;
-- database dan migration;
-- FFmpeg/media preview;
-- frontend player/Plyr/native player;
-- HTTP trusted headers dan Cloudflare compatibility.
+- Do not alter disk or storage logic.
+- Do not alter delete behavior.
+- Do not change user scope, permissions, authentication, or public-share access without a specific reason and dedicated audit.
+- Do not change the database schema unless upstream requires it and the migration is understood.
+- Do not add hidden telemetry, downloaders, reverse shells, credential collectors, or undisclosed external connections.
+- Do not modify users' original files.
+- Downloads must continue to return the original files, not transcoded or cached derivatives.
+- Do not run destructive commands or overwrite production databases/configuration.
+- Keep changes minimal, reversible, and documented.
 
-### 4. Reapply custom patch
+## Procedure for every upstream update
 
-Jika update layak dipakai:
+I will provide a release link, for example:
 
-- ambil source dari stable tag;
-- apply ulang global `shareBanner` fallback;
-- apply ulang Help tanpa Official Docs;
-- apply ulang version text/link behavior;
-- pertahankan nama dan format config yang kompatibel;
-- jangan menganggap patch lama otomatis cocok; periksa konflik manual.
+```text
+<NEW FBQ RELEASE LINK>
+```
 
-### 5. Test wajib
+### 1. Verify the source
 
-Jalankan minimal:
+- Confirm that the release is stable, not beta/alpha/nightly.
+- Record the tag, commit, date, and parent commit.
+- Do not use `main` when a stable tag is available.
+
+### 2. Assess urgency
+
+Read the release notes and source diff, then classify the update:
+
+- **URGENT**: authentication bypass, unauthenticated access, path traversal, arbitrary file read/write, privilege escalation, public-share bypass, token/session vulnerability, database corruption, or an important security fix.
+- **RECOMMENDED**: important bug fixes, Windows/FFmpeg/browser compatibility, storage/share stability, or relevant performance fixes.
+- **OPTIONAL**: unused features, UI changes, documentation, or minor optimizations.
+- **HOLD**: beta releases, breaking changes, risky database migrations, or changes incompatible with the custom patch.
+
+Explain whether it is safe to remain on the current version when the update is not urgent.
+
+### 3. Audit sensitive areas
+
+Compare the old and new versions for:
+
+- authentication, sessions, and tokens;
+- user permissions and scope;
+- public shares and share passwords;
+- downloads and HTTP Range/`206 Partial Content`;
+- filesystem/source resolution;
+- delete, move, copy, and upload operations;
+- database and migrations;
+- FFmpeg/media previews;
+- frontend player, Plyr, and native-player behavior;
+- trusted HTTP headers and Cloudflare compatibility.
+
+### 4. Reapply the custom patch
+
+If the update is worth adopting:
+
+- start from the stable tag;
+- reapply the global `shareBanner` fallback;
+- reapply the Help change that removes Official Docs;
+- reapply the version text/link behavior;
+- preserve compatible configuration names and formats;
+- never assume the old patch applies cleanly—inspect conflicts manually.
+
+### 5. Required tests
+
+Run at minimum:
 
 ```bash
 gofmt -w <changed-go-files>
@@ -119,48 +124,46 @@ npm run build
 git diff --check
 ```
 
-Audit diff final dan pastikan tidak ada perubahan tak terkait pada storage, delete, permission, scope, auth, database, atau download.
+Audit the final diff and confirm that there are no unrelated changes to storage, delete, permissions, scope, authentication, database, or downloads.
 
-### 6. Build Windows
+### 6. Windows build
 
-Jika semua aman:
+If the result is safe:
 
 ```bash
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build ...
 ```
 
-Verifikasi:
+Verify:
 
-- binary adalah Windows PE32+ amd64;
-- frontend ter-embed;
-- binary tidak kosong;
-- checksum SHA-256;
-- source tag/commit benar;
-- tidak ada file rahasia ikut terpaket.
+- the binary is Windows PE32+ amd64;
+- the frontend is embedded;
+- the binary is non-empty;
+- a SHA-256 checksum is recorded;
+- the source tag/commit is correct;
+- no secrets are packaged.
 
-### 7. Laporan akhir
-
-Jawab dengan format:
+### 7. Final report format
 
 ```text
-Release yang dianalisis:
+Release analyzed:
 Tag/commit:
 Status: URGENT / RECOMMENDED / OPTIONAL / HOLD
-Alasan:
-Security fix:
+Reason:
+Security fixes:
 Breaking changes:
-Dampak ke custom kita:
-Custom patch yang berhasil dipertahankan:
-Test yang lolos:
-Test yang tidak bisa dilakukan:
-Risiko tersisa:
-Rekomendasi deployment:
-Langkah rollback:
-SHA-256 binary:
+Impact on our custom patch:
+Custom changes preserved:
+Tests passed:
+Tests not available:
+Remaining risks:
+Deployment recommendation:
+Rollback steps:
+SHA-256:
 ```
 
-Jika ada hal yang belum diverifikasi, katakan terus terang. Jangan pernah menyatakan “bebas bug 100%” atau “aman 100%”.
+Be honest about anything that was not verified. Never claim that software is 100% bug-free or 100% secure.
 
-## Instruksi penting
+## Important instruction
 
-Sebelum mengedit atau build, mulai dengan membaca link release yang saya berikan dan menjelaskan hasil analisisnya. Jika update tidak urgent, jangan membuat build baru tanpa alasan. Jika update urgent, tetap buat patch custom dan build hanya setelah test serta audit diff selesai.
+Before editing or building, read the release link I provide and explain your analysis. If the update is not urgent, do not create a new build without a clear reason. If it is urgent, reapply the custom patch and build only after testing and auditing the final diff.

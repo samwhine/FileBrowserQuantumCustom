@@ -1,6 +1,6 @@
-diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/prompts/Help.vue /home/ubuntu/fbq-custom-source/frontend/src/components/prompts/Help.vue
---- /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/prompts/Help.vue	2026-10-02 15:30:17.351190276 +0000
-+++ /home/ubuntu/fbq-custom-source/frontend/src/components/prompts/Help.vue	2026-10-02 15:31:34.056973164 +0000
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.8/frontend/src/components/prompts/Help.vue /home/ubuntu/fbq-custom-v1.5.8/frontend/src/components/prompts/Help.vue
+--- /home/ubuntu/fbq-upstream-v1.5.8/frontend/src/components/prompts/Help.vue	2026-10-05 09:35:01.794699966 +0000
++++ /home/ubuntu/fbq-custom-v1.5.8/frontend/src/components/prompts/Help.vue	2026-10-05 09:35:55.624099785 +0000
 @@ -1,12 +1,5 @@
  <template>
    <div class="card-content help-content">
@@ -14,9 +14,9 @@ diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubunt
      <div class="shortcuts-grid">
        <!-- Function Keys Section -->
        <div class="shortcut-section">
-diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/sidebar/Sidebar.vue /home/ubuntu/fbq-custom-source/frontend/src/components/sidebar/Sidebar.vue
---- /home/ubuntu/fbq-upstream-v1.5.6/frontend/src/components/sidebar/Sidebar.vue	2026-10-02 15:30:17.353795478 +0000
-+++ /home/ubuntu/fbq-custom-source/frontend/src/components/sidebar/Sidebar.vue	2026-10-02 15:31:34.059023312 +0000
+diff -ruN '--exclude=.git' '--exclude=node_modules' '--exclude=dist' /home/ubuntu/fbq-upstream-v1.5.8/frontend/src/components/sidebar/Sidebar.vue /home/ubuntu/fbq-custom-v1.5.8/frontend/src/components/sidebar/Sidebar.vue
+--- /home/ubuntu/fbq-upstream-v1.5.8/frontend/src/components/sidebar/Sidebar.vue	2026-10-05 09:35:01.797740748 +0000
++++ /home/ubuntu/fbq-custom-v1.5.8/frontend/src/components/sidebar/Sidebar.vue	2026-10-05 09:35:55.626772993 +0000
 @@ -17,14 +17,15 @@
      <div class="buffer"></div>
      <div v-if="!isSettings" class="credits">

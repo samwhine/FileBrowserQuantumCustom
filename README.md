@@ -143,8 +143,8 @@ This repository is a custom build of FileBrowser Quantum for a Windows local-dis
 ## Upstream baseline
 
 - Upstream repository: `https://github.com/gtsteffaniak/filebrowser`
-- Stable tag: `v1.5.6-stable`
-- Upstream commit: `5d9b4df2a21d1ba4a6af481181a7402cb5cbb5ca`
+- Stable tag: `v1.5.8-stable`
+- Upstream commit: `84024e258b4e71d32b8cce48c69ae5172a65fe08`
 - Target binary: Windows 64-bit (`amd64`)
 
 ## Custom features

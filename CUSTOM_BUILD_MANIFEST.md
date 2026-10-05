@@ -3,8 +3,8 @@
 This tree is based on the official upstream stable tag:
 
 - Repository: https://github.com/gtsteffaniak/filebrowser
-- Upstream tag: `v1.5.6-stable`
-- Upstream commit: `5d9b4df2a21d1ba4a6af481181a7402cb5cbb5ca`
+- Upstream tag: `v1.5.8-stable`
+- Upstream commit: `84024e258b4e71d32b8cce48c69ae5172a65fe08`
 - Target: Windows amd64
 
 ## Custom changes
@@ -35,13 +35,13 @@ The included `config-production-example.yaml` documents the custom configuration
 The Windows executable previously delivered with this project was:
 
 ```text
-filebrowser-quantum-v1.5.6-global-banner-windows-amd64.exe
+filebrowser-quantum-v1.5.8-custom-windows-amd64.exe
 ```
 
 SHA-256:
 
 ```text
-91b315180ce80ba16717cba518e0930e9813adbc532fb87bcf249b3fb5f94f68
+c7178be4e2fb36b791b06293d0ec3261a6f2c4b964a29e472ae1772f8ea212ba
 ```
 
 Before production deployment, rebuild from this tree with the pinned upstream commit and run the full backend/frontend tests in a Windows-capable build environment. Do not claim bit-for-bit reproducibility unless the same toolchain, frontend dependencies, build flags, and embedded assets are used.
@@ -51,3 +51,18 @@ Before production deployment, rebuild from this tree with the pinned upstream co
 **Samuel Extehines Heydemans**
 
 This attribution applies to the custom modifications in this repository. The upstream FileBrowser Quantum project and its original authors retain their original copyright and attribution.
+
+## Upstream security update included
+
+This candidate includes the `v1.5.8-stable` high-severity fix for TOTP/MFA re-enrollment. Anonymous callers can no longer replace an existing second factor using only the account password; replacing or resetting an existing factor requires an authenticated self or administrator session. First-time enrollment without MFA remains supported.
+
+The release also includes the upstream dependency updates and Docker FFmpeg update from the release notes.
+
+## Validation summary
+
+- Go version: `go1.27.0`
+- Backend: `go test ./...` passed.
+- Frontend: 10 test files and 58 tests passed.
+- Frontend production build: passed.
+- Windows cross-build: passed (`PE32+ x86-64`).
+- Note: `npm ci` reported four high-severity advisories in the upstream dependency tree; review with `npm audit` before changing locked dependencies. They were not changed as part of this custom patch.

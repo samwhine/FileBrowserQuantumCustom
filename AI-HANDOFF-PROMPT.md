@@ -15,7 +15,7 @@ https://github.com/gtsteffaniak/filebrowser
 The original custom baseline is:
 
 ```text
-v1.5.6-stable
+v1.5.8-stable
 ```
 
 Do not use beta, alpha, experimental, unknown forks, or `main` without a specific reason. For every update, verify the exact tag and commit.

@@ -5,7 +5,7 @@ I maintain a custom **FileBrowser Quantum (FBQ)** installation on Windows. When 
 ## Project identity
 
 - Upstream repository: `https://github.com/gtsteffaniak/filebrowser`
-- Previous baseline: `v1.5.6-stable`
+- Previous baseline: `v1.5.8-stable`
 - Target platform: Windows 64-bit (`GOOS=windows`, `GOARCH=amd64`)
 - Primary storage: Windows local disk, for example `D:\\Your-Data`
 - External access: Cloudflare Tunnel and a private domain

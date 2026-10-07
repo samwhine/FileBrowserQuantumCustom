@@ -32,6 +32,8 @@ frontend/tsconfig.tsbuildinfo
 /backend/srv
 /backend/http/dist
 /backend/http/embed
+!/backend/http/embed/
+!/backend/http/embed/.gitignore
 /backend/debug
 
 .DS_Store
@@ -45,6 +47,9 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Generated Windows binaries
+*.exe
 
 # Editor directories and files
 .idea

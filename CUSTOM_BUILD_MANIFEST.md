@@ -1,4 +1,4 @@
-# FileBrowser Quantum Custom v1.5.6
+# FileBrowser Quantum Custom v1.5.8
 
 This tree is based on the official upstream stable tag:
 
@@ -41,7 +41,7 @@ filebrowser-quantum-v1.5.8-custom-windows-amd64.exe
 SHA-256:
 
 ```text
-c7178be4e2fb36b791b06293d0ec3261a6f2c4b964a29e472ae1772f8ea212ba
+1dca554e47b179fd07a688c5e64aef7fc36e70d6c20601f3e3b16de67bde98ef
 ```
 
 Before production deployment, rebuild from this tree with the pinned upstream commit and run the full backend/frontend tests in a Windows-capable build environment. Do not claim bit-for-bit reproducibility unless the same toolchain, frontend dependencies, build flags, and embedded assets are used.

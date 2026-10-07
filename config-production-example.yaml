@@ -24,15 +24,15 @@ auth:
 frontend:
   name: "Your Company"
   description: "Internal file management server for Your Company — access and manage documents, production assets, and team work files."
-  favicon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\favicon.png"
-  loginIcon: "C:\\Your Data\\Project_Pribadi\\FBQ-Server\\logo.svg"
+  favicon: "C:\\Your Data\\Branding\\favicon.png"
+  loginIcon: "C:\\Your Data\\Branding\\logo.svg"
   disableHelp: false
   disableVersionText: false
   disableVersionLink: true
 
 integrations:
   media:
-    ffmpegPath: "C:\\Your Data\\Project_Pribadi\\-- Apps --\\ffmpeg\\bin"
+    ffmpegPath: "C:\\Tools\\ffmpeg\\bin"
     debug: true
     extractEmbeddedSubtitles: false
     convert:

@@ -13,10 +13,20 @@
       <i @click="dismissPwaInstall" aria-label="close-banner" class="material-symbols">close</i>
     </div>
     <SidebarSettings v-if="isSettings"></SidebarSettings>
-    <SidebarGeneral v-if="!isSettings"></SidebarGeneral>
-    <div class="buffer"></div>
-    <div v-if="!isSettings" class="credits">
-      <span v-for="item in externalLinks" :key="item.title">
+	    <SidebarGeneral v-if="!isSettings"></SidebarGeneral>
+	    <div class="buffer"></div>
+	    <div v-if="!isSettings" class="credits">
+	      <span v-if="authorName && !disableAuthorText" class="author-credit">
+	        <a
+	          v-if="authorLink && !disableAuthorLink"
+	          :href="authorLink"
+	          target="_blank"
+	          rel="noopener noreferrer"
+	          :title="authorName"
+	        >Author: {{ authorName }}</a>
+	        <span v-else>Author: {{ authorName }}</span>
+	      </span>
+	      <span v-for="item in externalLinks" :key="item.title">
 	        <a
 	          v-if="item.url === 'help prompt'"
 	          href="#"
@@ -103,10 +113,14 @@ export default {
       }
     },
   },
-  computed: {
-    externalLinks: () => globalVars.externalLinks,
-    name: () => globalVars.name,
-    releaseUrl: () => globalVars.updateAvailable,
+	computed: {
+	    externalLinks: () => globalVars.externalLinks,
+	    name: () => globalVars.name,
+	    authorName: () => globalVars.authorName || "",
+	    authorLink: () => globalVars.authorLink || "",
+	    disableAuthorText: () => globalVars.disableAuthorText === true,
+	    disableAuthorLink: () => globalVars.disableAuthorLink === true,
+	    releaseUrl: () => globalVars.updateAvailable,
     isDarkMode: () => getters.isDarkMode(),
     isSettings: () => getters.isSettings(),
     isMobile: () => getters.isMobile(),

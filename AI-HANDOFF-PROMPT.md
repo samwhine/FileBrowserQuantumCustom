@@ -80,7 +80,22 @@ frontend:
 
 Keep the basic navigation shortcuts, but remove the Official Docs paragraph/link from the Help dialog. Do not remove the entire Help feature.
 
-### E. Upload resilience custom patch
+### E. Sidebar author and custom version label
+
+The custom sidebar supports an optional author line and a configurable display-only version label:
+
+```yaml
+frontend:
+  customVersionText: "v1.5.8-custom-upload-fix"
+  authorName: "Samuel Extehines Heydemans"
+  authorLink: "https://samuel-extehines-heydemans-portofolio.vercel.app/"
+  disableAuthorText: false
+  disableAuthorLink: false
+```
+
+The internal upstream version remains unchanged for update/provenance purposes. `customVersionText` only changes the sidebar label. `disableAuthorText: true` hides the author row; `disableAuthorLink: true` keeps the author as plain text. External author links must retain `target="_blank"` and `rel="noopener noreferrer"`.
+
+### F. Upload resilience custom patch
 
 `frontend/src/utils/upload.js` contains a custom upload-stability patch that must be preserved across upstream updates. It:
 
@@ -126,6 +141,11 @@ frontend:
   description: "Internal file management server for Your Company."
   favicon: "C:\\Your Data\\FBQ-Server\\favicon.png"
   loginIcon: "C:\\Your Data\\FBQ-Server\\logo.svg"
+  customVersionText: "v1.5.8-custom-upload-fix"
+  authorName: "Samuel Extehines Heydemans"
+  authorLink: "https://samuel-extehines-heydemans-portofolio.vercel.app/"
+  disableAuthorText: false
+  disableAuthorLink: false
   disableHelp: false
   disableVersionText: false
   disableVersionLink: true

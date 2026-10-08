@@ -265,6 +265,10 @@ func handleWithStaticData(w http.ResponseWriter, r *http.Request, d *requestCont
 
 	data["globalVars"] = map[string]interface{}{
 		"name":                   config.Frontend.Name,
+		"authorName":             config.Frontend.AuthorName,
+		"authorLink":             config.Frontend.AuthorLink,
+		"disableAuthorText":      config.Frontend.DisableAuthorText,
+		"disableAuthorLink":      config.Frontend.DisableAuthorLink,
 		"minSearchLength":        config.Server.MinSearchLength,
 		"disableExternal":        config.Frontend.DisableDefaultLinks,
 		"darkMode":               config.UserDefaults.UI.DarkMode,

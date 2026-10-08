@@ -19,6 +19,7 @@ backend/http/share.go
 frontend/src/components/prompts/Help.vue
 frontend/src/components/sidebar/Sidebar.vue
 frontend/src/utils/upload.js
+backend/http/static.go
 ```
 
 The included `config-production-example.yaml` documents the custom configuration for the global share banner and sidebar behavior.
@@ -31,20 +32,21 @@ The included `config-production-example.yaml` documents the custom configuration
 - The upload-fix remains user-configurable: `maxConcurrentUpload` and `uploadChunkSizeMb` continue to come from the user's File Loading settings; the custom code does not force a fixed concurrency or chunk size.
 - Help remains available, but the Official Docs link is removed.
 - Version text remains visible but is not a GitHub hyperlink.
+- Sidebar can display a configurable custom version label and author attribution; the author link is optional and opens with safe external-link attributes.
 - No changes to original file contents, download behavior, disk/storage logic, delete logic, user scope, or database schema were intentionally made.
 
 ## Rebuild note
 
-The Windows executable previously delivered with this project was:
+The latest Windows executable delivered with this project is:
 
 ```text
-filebrowser-quantum-v1.5.8-custom-windows-amd64.exe
+filebrowser-quantum-v1.5.8-sidebar-author-upload-fix-windows-amd64.exe
 ```
 
 SHA-256:
 
 ```text
-1dca554e47b179fd07a688c5e64aef7fc36e70d6c20601f3e3b16de67bde98ef
+daa26f0e59d625d5bcae6a7351b9a79ad35e1db5cd3c818d3ec246ccfdb9d063
 ```
 
 Before production deployment, rebuild from this tree with the pinned upstream commit and run the full backend/frontend tests in a Windows-capable build environment. Do not claim bit-for-bit reproducibility unless the same toolchain, frontend dependencies, build flags, and embedded assets are used.
@@ -69,6 +71,6 @@ The release also includes the upstream dependency updates and Docker FFmpeg upda
 - Backend: `go test ./...` passed.
 - Frontend: 10 test files and 58 tests passed.
 - Frontend production build: passed.
-- Windows cross-build: passed (`PE32+ x86-64`) for the upload-fix build.
+- Windows cross-build: passed (`PE32+ x86-64`) for the sidebar-author-upload-fix build.
 - Upload-fix frontend behavior was validated with the existing 58-test suite and a production asset build. Real-world browser/tunnel stress testing is still recommended with a small test batch before production rollout.
 - Note: `npm ci` reported four high-severity advisories in the upstream dependency tree; review with `npm audit` before changing locked dependencies. They were not changed as part of this custom patch.

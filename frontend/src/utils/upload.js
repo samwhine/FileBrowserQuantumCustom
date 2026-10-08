@@ -62,7 +62,11 @@ class UploadManager {
     this.pendingItems = null; // Store pending items during conflict resolution
     this.probedDirs = new Set(); // Track directories that were probed/created during conflict check
     this.progressTimeouts = new Map(); // Track progress timeouts per upload ID
-    this.PROGRESS_TIMEOUT_MS = 10000; // 10 seconds without progress = pause
+    // A quiet progress event can mean the browser/server is flushing a chunk,
+    // not that the connection is dead. Retry transient stalls automatically.
+    this.PROGRESS_TIMEOUT_MS = 60000;
+    this.AUTO_RETRY_LIMIT = 5;
+    this.AUTO_RETRY_BASE_DELAY_MS = 2000;
   }
 
   setOnConflict(handler) {
@@ -224,6 +228,7 @@ class UploadManager {
         overwrite: effectiveOverwrite,
         lastProgressTime: null, // Track when progress was last updated
         connectionIssue: false, // Flag for connection-related issues
+        retryCount: 0,
       };
       return upload;
     });
@@ -372,6 +377,9 @@ class UploadManager {
       } catch (err) {
         this.clearProgressTimeout(upload.id);
         await this.handleUploadError(upload, err);
+        if (upload.status === "error" && upload.connectionIssue) {
+          this.scheduleRetry(upload);
+        }
       } finally {
         this.activeUploads--;
         upload.xhr = null;
@@ -436,11 +444,17 @@ class UploadManager {
         // Only increment chunkOffset after successful chunk upload.
         // This ensures that if we pause/error mid-chunk, we'll retry that chunk on resume.
         upload.chunkOffset += chunk.size;
-        // Update last progress time after successful chunk upload
+        // The response for this chunk was confirmed; start a fresh watchdog
+        // window for the next chunk instead of leaving the old timer alive.
         upload.lastProgressTime = Date.now();
+        upload.retryCount = 0;
+        this.startProgressTimeout(upload);
       } catch (err) {
         this.clearProgressTimeout(upload.id);
         await this.handleUploadError(upload, err);
+        if (upload.status === "error" && upload.connectionIssue) {
+          this.scheduleRetry(upload);
+        }
         break; // Exit loop on error or pause
       }
     }
@@ -517,13 +531,12 @@ class UploadManager {
     // Clear any existing timeout
     this.clearProgressTimeout(upload.id);
 
-    // Set new timeout to pause if no progress for 10 seconds
+    // Wait for slow disk/network responses before retrying automatically.
     const timeoutId = setTimeout(() => {
       if (upload.status === "uploading") {
-        console.log(`Upload ${upload.id} stalled - no progress for ${this.PROGRESS_TIMEOUT_MS}ms, pausing`);
+        console.log(`Upload ${upload.id} stalled - no progress for ${this.PROGRESS_TIMEOUT_MS}ms, retrying`);
         upload.connectionIssue = true;
-        void this.pause(upload.id);
-        upload.errorDetails = "Connection stalled - upload paused. Click resume to retry.";
+        void this.pauseAndRetry(upload.id);
       }
       this.progressTimeouts.delete(upload.id);
     }, this.PROGRESS_TIMEOUT_MS);
@@ -539,11 +552,41 @@ class UploadManager {
     this.startProgressTimeout(upload);
   }
 
+  async pauseAndRetry(id) {
+    const upload = this.findById(id);
+    if (!upload || upload.status !== "uploading") return;
+    await this.pause(id);
+    if (upload.status === "paused") {
+      this.scheduleRetry(upload);
+    }
+  }
+
+  scheduleRetry(upload) {
+    if (upload.retryCount >= this.AUTO_RETRY_LIMIT) {
+      upload.errorDetails = "Upload paused after repeated connection failures. Click resume to try again.";
+      return;
+    }
+
+    upload.retryCount += 1;
+    upload.status = "paused";
+    const delay = this.AUTO_RETRY_BASE_DELAY_MS * (2 ** (upload.retryCount - 1));
+    upload.errorDetails = `Temporary connection problem. Retrying automatically (${upload.retryCount}/${this.AUTO_RETRY_LIMIT})...`;
+    setTimeout(() => {
+      const current = this.findById(upload.id);
+      if (current?.status === "paused") {
+        current.status = "pending";
+        current.connectionIssue = false;
+        void this.processQueue();
+      }
+    }, delay);
+  }
+
   resume(id) {
     const upload = this.findById(id);
     if (upload?.status === "paused") {
       this.isOverallPaused = false;
       upload.status = "pending";
+      upload.retryCount = 0;
       upload.connectionIssue = false; // Clear connection issue on resume
       const progress =
         upload.size > 0 ? (upload.chunkOffset / upload.size) * 100 : 0;

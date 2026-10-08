@@ -80,6 +80,20 @@ frontend:
 
 Keep the basic navigation shortcuts, but remove the Official Docs paragraph/link from the Help dialog. Do not remove the entire Help feature.
 
+### E. Upload resilience custom patch
+
+`frontend/src/utils/upload.js` contains a custom upload-stability patch that must be preserved across upstream updates. It:
+
+- increases the stalled-progress window from 10 seconds to 60 seconds;
+- retries transient stalled/network failures automatically with bounded exponential backoff;
+- resets the watchdog after each confirmed chunk response;
+- preserves the current chunk offset when retrying;
+- keeps the user's `maxConcurrentUpload` and `uploadChunkSizeMb` settings configurable through the existing File Loading UI; it does not hardcode the user's concurrency or chunk size.
+
+The validated build label is `v1.5.8-custom-upload-fix`. The requested final attribution label, after operational validation, is `v1.5.8 By Samuel Extehines Heydemans`. The custom maintainer/author is **Samuel Extehines Heydemans**.
+
+Do not add automatic deletion of failed upload temporary files, a new Discard endpoint, or Google-Drive-style server-side upload sessions without a separate design, tests, and explicit review. The current upload-fix must remain minimal and must not alter normal delete behavior, storage paths, permissions, scopes, or database schema.
+
 ## 3. Example configuration
 
 Always inspect the current Go structs and config parser before relying on field names, because upstream versions can change them.

@@ -1,4 +1,4 @@
-# FileBrowser Quantum Custom v1.5.8
+# FileBrowser Quantum Custom v1.5.8 — Samuel Extehines Heydemans
 
 This tree is based on the official upstream stable tag:
 
@@ -9,7 +9,7 @@ This tree is based on the official upstream stable tag:
 
 ## Custom changes
 
-Only these six upstream files contain code changes from the custom build:
+These upstream files contain code changes from the custom build:
 
 ```text
 backend/common/settings/config.go
@@ -18,6 +18,7 @@ backend/database/share/extended.go
 backend/http/share.go
 frontend/src/components/prompts/Help.vue
 frontend/src/components/sidebar/Sidebar.vue
+frontend/src/utils/upload.js
 ```
 
 The included `config-production-example.yaml` documents the custom configuration for the global share banner and sidebar behavior.
@@ -26,6 +27,8 @@ The included `config-production-example.yaml` documents the custom configuration
 
 - Source-relative global fallback share banner / Open Graph image.
 - Existing per-share custom banner remains higher priority.
+- Upload resilience improvements: a 60-second stalled-progress window, bounded automatic retry with exponential backoff, and watchdog reset after each confirmed chunk response.
+- The upload-fix remains user-configurable: `maxConcurrentUpload` and `uploadChunkSizeMb` continue to come from the user's File Loading settings; the custom code does not force a fixed concurrency or chunk size.
 - Help remains available, but the Official Docs link is removed.
 - Version text remains visible but is not a GitHub hyperlink.
 - No changes to original file contents, download behavior, disk/storage logic, delete logic, user scope, or database schema were intentionally made.
@@ -52,6 +55,8 @@ Before production deployment, rebuild from this tree with the pinned upstream co
 
 This attribution applies to the custom modifications in this repository. The upstream FileBrowser Quantum project and its original authors retain their original copyright and attribution.
 
+The upload-fix Windows build is labeled `v1.5.8-custom-upload-fix`. The intended finalized attribution label after operational validation is `v1.5.8 By Samuel Extehines Heydemans`; changing this display label does not change the upstream base version or the custom behavior.
+
 ## Upstream security update included
 
 This candidate includes the `v1.5.8-stable` high-severity fix for TOTP/MFA re-enrollment. Anonymous callers can no longer replace an existing second factor using only the account password; replacing or resetting an existing factor requires an authenticated self or administrator session. First-time enrollment without MFA remains supported.
@@ -64,5 +69,6 @@ The release also includes the upstream dependency updates and Docker FFmpeg upda
 - Backend: `go test ./...` passed.
 - Frontend: 10 test files and 58 tests passed.
 - Frontend production build: passed.
-- Windows cross-build: passed (`PE32+ x86-64`).
+- Windows cross-build: passed (`PE32+ x86-64`) for the upload-fix build.
+- Upload-fix frontend behavior was validated with the existing 58-test suite and a production asset build. Real-world browser/tunnel stress testing is still recommended with a small test batch before production rollout.
 - Note: `npm ci` reported four high-severity advisories in the upstream dependency tree; review with `npm audit` before changing locked dependencies. They were not changed as part of this custom patch.

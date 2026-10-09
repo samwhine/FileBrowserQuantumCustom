@@ -26,7 +26,6 @@ frontend:
   description: "Internal file management server for Your Company — access and manage documents, production assets, and team work files."
   favicon: "C:\\Your Data\\Branding\\favicon.png"
   loginIcon: "C:\\Your Data\\Branding\\logo.svg"
-  customVersionText: "v1.5.8-custom-upload-fix"
   authorName: "Samuel Extehines Heydemans"
   authorLink: "https://samuel-extehines-heydemans-portofolio.vercel.app/"
   disableAuthorText: false

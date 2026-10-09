@@ -154,7 +154,7 @@ This repository is a custom build of FileBrowser Quantum for a Windows local-dis
 - Share title behavior remains the original FBQ behavior.
 - Help remains visible while the Official Docs link is removed from the Help dialog.
 - FBQ version text remains visible but its GitHub hyperlink can be disabled.
-- Sidebar author attribution and display-only custom version text are configurable through `frontend.customVersionText`, `frontend.authorName`, `frontend.authorLink`, `frontend.disableAuthorText`, and `frontend.disableAuthorLink`.
+- Sidebar author attribution is configurable through `frontend.authorName`, `frontend.authorLink`, `frontend.disableAuthorText`, and `frontend.disableAuthorLink`; the displayed version always comes from the EXE build metadata, not from production YAML.
 - Upload resilience patch: a 60-second stalled-progress window, bounded automatic retry with exponential backoff, and watchdog reset after confirmed chunk responses. Existing user-configurable concurrency and chunk-size settings remain in control.
 - The validated upload-fix build label is `v1.5.8-custom-upload-fix`; the intended finalized attribution label is `v1.5.8 By Samuel Extehines Heydemans`.
 - Production config example: [`config-production-example.yaml`](config-production-example.yaml).

@@ -252,12 +252,8 @@ func setupFrontend(generate bool) {
 		if Config.Frontend.DisableVersionLink {
 			versionURL = "version text"
 		}
-		versionText := fmt.Sprintf("(%v)", version.Version)
-		if Config.Frontend.CustomVersionText != "" {
-			versionText = Config.Frontend.CustomVersionText
-		}
 		Config.Frontend.ExternalLinks = append(Config.Frontend.ExternalLinks, ExternalLink{
-			Text:  versionText,
+			Text:  fmt.Sprintf("(%v)", version.Version),
 			Title: version.CommitSHA,
 			Url:   versionURL,
 		})

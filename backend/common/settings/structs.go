@@ -286,7 +286,6 @@ type Frontend struct {
 	DisableHelp           bool           `json:"disableHelp" yaml:"disableHelp"`               // hide the built-in Help link
 	DisableVersionText    bool           `json:"disableVersionText" yaml:"disableVersionText"` // hide the built-in version text
 	DisableVersionLink    bool           `json:"disableVersionLink" yaml:"disableVersionLink"` // hide the built-in version/release link while keeping Help
-	CustomVersionText     string         `json:"customVersionText" yaml:"customVersionText"`   // optional custom sidebar version label
 	AuthorName            string         `json:"authorName" yaml:"authorName"`                 // optional custom author label in the sidebar
 	AuthorLink            string         `json:"authorLink" yaml:"authorLink"`                 // optional author URL opened from the sidebar
 	DisableAuthorText     bool           `json:"disableAuthorText" yaml:"disableAuthorText"`   // hide the custom author label

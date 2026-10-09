@@ -32,7 +32,7 @@ The included `config-production-example.yaml` documents the custom configuration
 - The upload-fix remains user-configurable: `maxConcurrentUpload` and `uploadChunkSizeMb` continue to come from the user's File Loading settings; the custom code does not force a fixed concurrency or chunk size.
 - Help remains available, but the Official Docs link is removed.
 - Version text remains visible but is not a GitHub hyperlink.
-- Sidebar can display a configurable custom version label and author attribution; the author link is optional and opens with safe external-link attributes.
+- Sidebar displays the version string embedded in the EXE and can display configurable author attribution; the author link is optional and opens with safe external-link attributes.
 - No changes to original file contents, download behavior, disk/storage logic, delete logic, user scope, or database schema were intentionally made.
 
 ## Rebuild note
@@ -46,7 +46,7 @@ filebrowser-quantum-v1.5.8-sidebar-author-upload-fix-windows-amd64.exe
 SHA-256:
 
 ```text
-daa26f0e59d625d5bcae6a7351b9a79ad35e1db5cd3c818d3ec246ccfdb9d063
+3146d9fcec6f9c7ae3d12c83ca335d6db5247182d1b4976d30d9fa77f8b8d062
 ```
 
 Before production deployment, rebuild from this tree with the pinned upstream commit and run the full backend/frontend tests in a Windows-capable build environment. Do not claim bit-for-bit reproducibility unless the same toolchain, frontend dependencies, build flags, and embedded assets are used.
@@ -57,7 +57,7 @@ Before production deployment, rebuild from this tree with the pinned upstream co
 
 This attribution applies to the custom modifications in this repository. The upstream FileBrowser Quantum project and its original authors retain their original copyright and attribution.
 
-The upload-fix Windows build is labeled `v1.5.8-custom-upload-fix`. The intended finalized attribution label after operational validation is `v1.5.8 By Samuel Extehines Heydemans`; changing this display label does not change the upstream base version or the custom behavior.
+The latest Windows binary embeds the display label `v1.5.8-sidebar-author-upload-fix`. The author attribution is displayed separately from the version and is configured through the frontend author fields; changing the display label during a future build does not change the upstream base version or custom behavior.
 
 ## Upstream security update included
 
